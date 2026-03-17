@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>歌手主页</title>
+    <meta name="description" content="歌单 + 抖音直播间 + 留言板。" />
+    <meta name="theme-color" content="#ff7bd1" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true"></div>
+    <main class="container">
+      <header class="header">
+        <div class="avatar" aria-hidden="true">
+          <img src="./assets/avatar.png" alt="" onerror="this.remove(); this.parentElement.textContent='♪';" />
+        </div>
+        <div class="title">
+          <div class="titleRow">
+            <h1 id="nickname">歌手主页</h1>
+            <span id="liveStatus" class="badge badge-off">状态未知</span>
+          </div>
+          <p class="subtitle">
+            <span class="muted">更新：<span id="profileUpdatedAt"></span></span>
+          </p>
+        </div>
+      </header>
+
+      <section class="card">
+        <h2>简介</h2>
+        <p id="introText">
+          对的对的，别怕，天塌了我是顶天立地的人。
+        </p>
+        <div id="tagChips" class="chips">
+          <span class="chip">社牛</span>
+          <span class="chip">大胆</span>
+          <span class="chip">可爱</span>
+          <span class="chip">害羞</span>
+          <span class="chip">精灵古怪</span>
+          <span class="chip">天籁之音</span>
+          <span class="chip">学歌超快</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <h2 class="row-title">功能</h2>
+          <div class="row-meta muted"></div>
+        </div>
+
+        <div class="tabBar" role="tablist" aria-label="功能切换">
+          <button class="tabBtn" type="button" data-tab="playlist" aria-selected="false">歌单</button>
+          <button class="tabBtn" type="button" data-tab="guestbook" aria-selected="false">留言</button>
+          <button class="tabBtn" type="button" data-tab="live" aria-selected="false">直播</button>
+          <button class="tabBtn" type="button" data-tab="schedule" aria-selected="false">直播表</button>
+          <button class="tabBtn" type="button" data-tab="recordings" aria-selected="false">录屏</button>
+          <button class="tabBtn" type="button" data-tab="admin" aria-selected="false">管理</button>
+        </div>
+
+        <div id="tabHint" class="muted tabHint">提示：选择上方功能按钮查看对应内容。</div>
+      </section>
+
+      <section id="tab-live" class="card tabPanel" hidden>
+        <div class="row">
+          <h2 class="row-title">直播</h2>
+          <div class="row-meta muted">点击直达抖音直播间主页</div>
+        </div>
+        <div class="chips">
+          <a id="douyinLive" class="btn" href="https://live.douyin.com/49330409995" target="_blank" rel="noreferrer">
+            打开抖音直播间
+          </a>
+        </div>
+        <p id="liveTitle" class="muted" style="margin-top:10px; display:none;"></p>
+        <div id="profileError" class="error"></div>
+      </section>
+
+      <section id="tab-playlist" class="card tabPanel" hidden>
+        <div class="row">
+          <h2 class="row-title">歌单</h2>
+          <div class="row-meta muted">共 <span id="count">0</span> 首</div>
+        </div>
+
+        <div class="filters">
+          <label class="field">
+            <span class="field-label">搜索</span>
+            <input id="q" class="input" type="search" placeholder="输入歌名 / 歌手 / 分类…" />
+          </label>
+          <label class="field">
+            <span class="field-label">分类</span>
+            <select id="genre" class="input"></select>
+          </label>
+          <label class="field">
+            <span class="field-label">排序</span>
+            <select id="sort" class="input">
+              <option value="title_asc">歌名（A→Z）</option>
+              <option value="price_asc">价格（低→高）</option>
+              <option value="price_desc">价格（高→低）</option>
+            </select>
+          </label>
+          <button id="clear" class="btn secondary" type="button">清空</button>
+        </div>
+
+        <div id="playlistError" class="error"></div>
+
+        <div class="tableWrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>歌名</th>
+                <th>原唱/歌手</th>
+                <th>分类</th>
+                <th class="th-num">价格</th>
+              </tr>
+            </thead>
+            <tbody id="playlistBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tab-guestbook" class="card tabPanel" hidden>
+        <div class="row">
+          <h2 class="row-title">留言</h2>
+          <div class="row-meta muted">欢迎留下想说的话</div>
+        </div>
+
+        <form id="guestbookForm" class="gbForm">
+          <div class="gbRow">
+            <label class="field">
+              <span class="field-label">昵称</span>
+              <input id="gbName" class="input" maxlength="24" placeholder="比如：小猫猫" />
+            </label>
+            <label class="field" style="display:none;">
+              <span class="field-label">网站</span>
+              <input id="gbWebsite" class="input" autocomplete="off" tabindex="-1" />
+            </label>
+            <button id="gbSend" class="btn" type="submit">发送留言</button>
+          </div>
+          <label class="field">
+            <span class="field-label">内容</span>
+            <textarea id="gbContent" class="input textarea" maxlength="500" rows="4" placeholder="想对TA说点什么…"></textarea>
+          </label>
+          <div id="gbError" class="error"></div>
+        </form>
+
+        <div class="gbListWrap">
+          <div id="gbList" class="gbList"></div>
+          <div id="gbHint" class="muted gbHint"></div>
+        </div>
+      </section>
+
+      <section id="tab-schedule" class="card tabPanel" hidden>
+        <div class="row">
+          <h2 class="row-title">直播时间表</h2>
+          <div class="row-meta muted">可手动维护一份固定排期</div>
+        </div>
+        <div class="tableWrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>时间</th>
+                <th>主题</th>
+                <th class="th-num">操作</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+        <div class="muted gbHint">提示：这是静态时间表；开播状态仍由顶部“状态徽标”实时抓取。</div>
+      </section>
+
+      <section id="tab-recordings" class="card tabPanel" hidden>
+        <div class="row">
+          <h2 class="row-title">录屏</h2>
+          <div class="row-meta muted">一键跳转到回放/录播</div>
+        </div>
+        <div id="recordingLinks" class="chips">
+          <a id="recordingLink1" class="btn" href="https://www.alipan.com/s/Z46yB47C7F7" target="_blank" rel="noreferrer">打开直播回放（阿里云盘）</a>
+        </div>
+        <div class="muted gbHint">如果你有 B 站/网盘的录播合集，也可以把链接加到这里。</div>
+      </section>
+
+      <section id="tab-admin" class="card tabPanel" hidden>
+        <div class="row">
+          <h2 class="row-title">管理</h2>
+          <div id="adminStatus" class="row-meta muted">未登录</div>
+        </div>
+
+        <div id="adminLogin" class="adminBox">
+          <div class="gbRow">
+            <label class="field">
+              <span class="field-label">管理员口令</span>
+              <input id="adminPassword" class="input" type="password" placeholder="输入后点击登录" />
+            </label>
+            <button id="adminLoginBtn" class="btn" type="button">登录</button>
+          </div>
+          <div id="adminError" class="error"></div>
+        </div>
+
+        <div id="adminPanel" class="adminBox" hidden>
+          <div class="row" style="margin-top:6px;">
+            <div class="row-meta muted">本地预览会保存到浏览器；部署后可接入在线管理。</div>
+            <button id="adminLogoutBtn" class="btn secondary" type="button">退出</button>
+          </div>
+
+          <div class="adminGrid">
+            <div class="adminCard">
+              <h3 class="adminTitle">简介</h3>
+              <label class="field">
+                <span class="field-label">内容</span>
+                <textarea id="adminIntro" class="input textarea" rows="4" maxlength="500"></textarea>
+              </label>
+              <button id="adminSaveIntro" class="btn" type="button">保存简介</button>
+            </div>
+
+            <div class="adminCard">
+              <h3 class="adminTitle">标签</h3>
+              <label class="field">
+                <span class="field-label">用逗号分隔</span>
+                <input id="adminTags" class="input" placeholder="比如：社牛,大胆,可爱" />
+              </label>
+              <button id="adminSaveTags" class="btn" type="button">保存标签</button>
+            </div>
+
+            <div class="adminCard">
+              <h3 class="adminTitle">录屏链接</h3>
+              <label class="field">
+                <span class="field-label">链接</span>
+                <input id="adminRecUrl1" class="input" placeholder="https://..." />
+              </label>
+              <label class="field">
+                <span class="field-label">按钮文案</span>
+                <input id="adminRecLabel1" class="input" placeholder="打开直播回放" />
+              </label>
+              <button id="adminSaveRecordings" class="btn" type="button">保存录屏</button>
+            </div>
+
+            <div class="adminCard">
+              <h3 class="adminTitle">直播表</h3>
+              <div class="muted" style="font-size:12px; margin:-2px 0 8px;">目前仅支持调整 3 个时间段与主题文案</div>
+              <label class="field">
+                <span class="field-label">13-15</span>
+                <input id="adminSch1" class="input" />
+              </label>
+              <label class="field">
+                <span class="field-label">16-18</span>
+                <input id="adminSch2" class="input" />
+              </label>
+              <label class="field">
+                <span class="field-label">22-23</span>
+                <input id="adminSch3" class="input" />
+              </label>
+              <button id="adminSaveSchedule" class="btn" type="button">保存直播表</button>
+            </div>
+
+            <div class="adminCard">
+              <h3 class="adminTitle">歌单管理</h3>
+              <div class="muted" style="font-size:12px; margin:-2px 0 10px;">支持本地增删（部署后可接入在线保存）</div>
+              <div class="filters" style="margin-top:0;">
+                <label class="field">
+                  <span class="field-label">歌名</span>
+                  <input id="adminPlTitle" class="input" placeholder="必填" />
+                </label>
+                <label class="field">
+                  <span class="field-label">歌手</span>
+                  <input id="adminPlArtist" class="input" placeholder="可填" />
+                </label>
+                <label class="field">
+                  <span class="field-label">分类</span>
+                  <input id="adminPlGenre" class="input" placeholder="可填" />
+                </label>
+                <label class="field">
+                  <span class="field-label">价格</span>
+                  <input id="adminPlPrice" class="input" inputmode="numeric" placeholder="0" />
+                </label>
+                <button id="adminPlAdd" class="btn" type="button">添加到歌单</button>
+                <button id="adminPlClear" class="btn secondary" type="button">清空本地歌单覆盖</button>
+              </div>
+              <div id="adminPlError" class="error"></div>
+              <div class="tableWrap">
+                <table class="table" style="min-width: 720px;">
+                  <thead>
+                    <tr>
+                      <th>歌名</th>
+                      <th>歌手</th>
+                      <th>分类</th>
+                      <th class="th-num">价格</th>
+                      <th class="th-num">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminPlaylistBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="adminCard">
+              <h3 class="adminTitle">留言管理</h3>
+              <div class="muted" style="font-size:12px; margin:-2px 0 10px;">在“留言”列表里也会出现删除按钮</div>
+              <button id="adminReloadGuestbook" class="btn secondary" type="button">刷新留言列表</button>
+              <div id="adminGbError" class="error"></div>
+              <div class="tableWrap">
+                <table class="table" style="min-width: 720px;">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>昵称</th>
+                      <th>时间</th>
+                      <th>内容</th>
+                      <th class="th-num">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminGuestbookBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span class="muted">© <span id="y"></span> xiaoyi · 保留所有权利</span>
+        <span class="muted"></span>
+      </footer>
+    </main>
+
+    <script defer src="./app.js"></script>
+  </body>
+</html>
+

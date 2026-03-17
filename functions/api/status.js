@@ -239,9 +239,10 @@ export async function onRequestGet({ request }) {
   const url = new URL(request.url);
   const liveId = (url.searchParams.get("live_id") || "49330409995").trim();
 
+  // Use a fixed desktop UA for stable signature/anti-bot behavior across devices.
+  // If we reuse client UA (mobile vs desktop), Douyin responses may diverge.
   const ua =
-    request.headers.get("user-agent") ||
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
   const startedAt = Date.now();
   try {

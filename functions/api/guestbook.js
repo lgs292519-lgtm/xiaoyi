@@ -34,15 +34,12 @@ function cleanText(s, { maxLen }) {
 }
 
 async function ensureTable(db) {
-  // Idempotent. D1 supports IF NOT EXISTS.
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS guestbook_messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      content TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-  `);
+  // Use a single-statement prepare().run() for D1 compatibility.
+  await db
+    .prepare(
+      "CREATE TABLE IF NOT EXISTS guestbook_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL)"
+    )
+    .run();
 }
 
 function getBearer(request) {

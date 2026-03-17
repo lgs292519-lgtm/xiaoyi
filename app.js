@@ -456,40 +456,49 @@ function formatTime(iso) {
   return d.toLocaleString(undefined, { hour12: false });
 }
 
-async function guestbookList() {
+function isLocalPreview() {
   try {
-    const res = await fetch(`${GUESTBOOK_API_URL}?limit=50`, { cache: "no-store" });
-    if (res.status === 404) {
-      return { mode: "local", messages: loadLocalGuestbook() };
-    }
-    const j = await res.json().catch(() => null);
-    if (!res.ok || !j?.ok) throw new Error(j?.error || `HTTP ${res.status}`);
-    return { mode: "remote", messages: j.messages || [] };
+    return (
+      location.protocol === "file:" ||
+      location.hostname === "127.0.0.1" ||
+      location.hostname === "localhost" ||
+      location.hostname.endsWith(".local")
+    );
   } catch {
-    // If remote fails (e.g. local preview), fallback to local.
-    return { mode: "local", messages: loadLocalGuestbook() };
+    return false;
   }
 }
 
+async function guestbookList() {
+  const res = await fetch(`${GUESTBOOK_API_URL}?limit=50`, { cache: "no-store" });
+  if (res.status === 404) return { mode: "local", messages: loadLocalGuestbook() };
+  const j = await res.json().catch(() => null);
+  if (!res.ok || !j?.ok) {
+    if (isLocalPreview()) return { mode: "local", messages: loadLocalGuestbook() };
+    throw new Error(j?.error || `HTTP ${res.status}`);
+  }
+  return { mode: "remote", messages: j.messages || [] };
+}
+
 async function guestbookPost({ name, content, website }) {
-  try {
-    const res = await fetch(GUESTBOOK_API_URL, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, content, website }),
-    });
-    if (res.status === 404) {
-      appendLocalGuestbook({ name, content });
-      return true;
-    }
-    const j = await res.json().catch(() => null);
-    if (!res.ok || !j?.ok) throw new Error(j?.error || `HTTP ${res.status}`);
-    return true;
-  } catch {
-    // If remote fails, still allow local testing.
+  const res = await fetch(GUESTBOOK_API_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name, content, website }),
+  });
+  if (res.status === 404 || res.status === 501) {
     appendLocalGuestbook({ name, content });
     return true;
   }
+  const j = await res.json().catch(() => null);
+  if (!res.ok || !j?.ok) {
+    if (isLocalPreview()) {
+      appendLocalGuestbook({ name, content });
+      return true;
+    }
+    return false;
+  }
+  return true;
 }
 
 function loadLocalGuestbook() {

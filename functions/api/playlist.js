@@ -21,13 +21,12 @@ function jsonResponse(obj, { status = 200 } = {}) {
 }
 
 async function ensureTable(db) {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS playlist_store (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-  `);
+  // Use a single-statement prepare().run() for D1 compatibility.
+  await db
+    .prepare(
+      "CREATE TABLE IF NOT EXISTS playlist_store (key TEXT PRIMARY KEY, json_value TEXT NOT NULL, updated_at TEXT NOT NULL)"
+    )
+    .run();
 }
 
 function getBearer(request) {
@@ -68,10 +67,10 @@ export async function onRequestGet({ env }) {
   try {
     await ensureTable(env.DB);
     const { results } = await env.DB.prepare(
-      `SELECT value, updated_at FROM playlist_store WHERE key='playlist' LIMIT 1`
+      "SELECT json_value, updated_at FROM playlist_store WHERE key='playlist' LIMIT 1"
     ).all();
     const row = results?.[0] || null;
-    const arr = row?.value ? JSON.parse(row.value) : null;
+    const arr = row?.json_value ? JSON.parse(row.json_value) : null;
     return jsonResponse({ ok: true, playlist: Array.isArray(arr) ? arr : [], updated_at: row?.updated_at || null });
   } catch (e) {
     return jsonResponse({ ok: false, error: String(e?.message || e) }, { status: 500 });
@@ -102,8 +101,8 @@ export async function onRequestPut({ env, request }) {
     await ensureTable(env.DB);
     const updatedAt = new Date().toISOString();
     await env.DB.prepare(
-      `INSERT INTO playlist_store (key, value, updated_at) VALUES ('playlist', ?1, ?2)
-       ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`
+      `INSERT INTO playlist_store (key, json_value, updated_at) VALUES ('playlist', ?1, ?2)
+       ON CONFLICT(key) DO UPDATE SET json_value=excluded.json_value, updated_at=excluded.updated_at`
     )
       .bind(JSON.stringify(normalized), updatedAt)
       .run();

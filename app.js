@@ -124,6 +124,11 @@ async function main() {
   const cfg = (await loadRemoteConfig()) || loadLocalConfig();
   applyConfig(cfg);
   initTabs();
+
+  // Cross-device sync: keep pulling remote config when available.
+  setInterval(() => {
+    refreshRemoteConfigIfNewer();
+  }, 15_000);
 }
 
 let _playlistCache = null;
@@ -131,6 +136,7 @@ let _playlistInited = false;
 let _guestbookInited = false;
 let _scheduleInited = false;
 let _adminInited = false;
+let _lastRemoteConfigUpdatedAt = "";
 
 function initTabs() {
   const buttons = Array.from(document.querySelectorAll(".tabBtn"));
@@ -826,13 +832,23 @@ function initAdmin() {
     if (s3 && s3.value === "") s3.value = String(cfg.schedule?.t3 || "唱歌 + 杂谈");
   }
 
-  document.getElementById("adminLoginBtn")?.addEventListener("click", () => {
+  document.getElementById("adminLoginBtn")?.addEventListener("click", async () => {
     const pw = String(pwEl?.value || "").trim();
     if (!pw) {
       if (errEl) errEl.textContent = "请输入口令";
       return;
     }
-    // Local preview: any non-empty password logs in (for easy testing).
+    if (errEl) errEl.textContent = "";
+
+    // If running on Pages with Functions, validate password against a protected endpoint.
+    const ok = await verifyAdminPassword(pw);
+    if (!ok) {
+      setAdmin(false);
+      setAdminToken("");
+      if (errEl) errEl.textContent = "口令不正确（或线上接口未生效）";
+      return;
+    }
+
     setAdmin(true);
     setAdminToken(pw);
     if (pwEl) pwEl.value = "";
@@ -1077,6 +1093,7 @@ async function loadRemoteConfig() {
     const j = await res.json().catch(() => null);
     if (!j?.ok) return null;
     const cfg = j.config && typeof j.config === "object" ? j.config : null;
+    if (j?.updated_at) _lastRemoteConfigUpdatedAt = String(j.updated_at);
     if (cfg) saveLocalConfig(cfg);
     return cfg;
   } catch {
@@ -1095,9 +1112,52 @@ async function saveRemoteConfig(cfg) {
     });
     if (res.status === 404) return false;
     const j = await res.json().catch(() => null);
+    if (j?.updated_at) _lastRemoteConfigUpdatedAt = String(j.updated_at);
     return !!(res.ok && j?.ok);
   } catch {
     return false;
+  }
+}
+
+async function refreshRemoteConfigIfNewer() {
+  try {
+    const res = await fetch(CONFIG_API_URL, { cache: "no-store" });
+    if (res.status === 404) return false;
+    if (!res.ok) return false;
+    const j = await res.json().catch(() => null);
+    if (!j?.ok) return false;
+    const updatedAt = String(j?.updated_at || "");
+    if (!updatedAt || updatedAt === _lastRemoteConfigUpdatedAt) return false;
+    const cfg = j.config && typeof j.config === "object" ? j.config : null;
+    _lastRemoteConfigUpdatedAt = updatedAt;
+    if (cfg) {
+      saveLocalConfig(cfg);
+      applyConfig(cfg);
+      // schedule depends on config
+      renderSchedule();
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function verifyAdminPassword(pw) {
+  // Local preview: Functions don't exist, allow any non-empty password.
+  try {
+    const res = await fetch(CONFIG_API_URL, {
+      method: "PUT",
+      headers: { "content-type": "application/json", authorization: `Bearer ${pw}` },
+      body: JSON.stringify({ config: loadLocalConfig() || {} }),
+    });
+    if (res.status === 404) return true;
+    if (res.status === 401) return false;
+    // If PUT is allowed and returns ok, password is correct.
+    const j = await res.json().catch(() => null);
+    return !!(res.ok && j?.ok);
+  } catch {
+    // Network errors: treat as local preview / offline.
+    return true;
   }
 }
 

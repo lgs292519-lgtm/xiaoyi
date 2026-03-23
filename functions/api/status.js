@@ -174,6 +174,20 @@ async function fetchRoomId({ liveId, ua, ttwid, acNonce }) {
   return m ? m[1] : null;
 }
 
+function pickDouyinAvatarUrl(user) {
+  if (!user || typeof user !== "object") return "";
+  const tryLists = [
+    user.avatar_thumb?.url_list,
+    user.avatar_medium?.url_list,
+    user.avatar_large?.url_list,
+  ];
+  for (const list of tryLists) {
+    if (Array.isArray(list) && list.length && list[0]) return String(list[0]);
+  }
+  if (user.avatar_url) return String(user.avatar_url);
+  return "";
+}
+
 async function fetchRoomStatus({ liveId, roomId, ua, ttwid, acNonce }) {
   const ts = Math.floor(Date.now() / 1000);
   const acSig = get__ac_signature("www.douyin.com", acNonce, ua, ts);
@@ -230,9 +244,11 @@ async function fetchRoomStatus({ liveId, roomId, ua, ttwid, acNonce }) {
   const j = await res.json();
   const data = j?.data;
   const room_status = data?.room_status ?? null;
-  const nickname = data?.user?.nickname ?? "";
+  const user = data?.user ?? {};
+  const nickname = user.nickname ?? "";
+  const avatar_url = pickDouyinAvatarUrl(user);
   const title = data?.room?.title ?? "";
-  return { room_status, nickname, title };
+  return { room_status, nickname, title, avatar_url };
 }
 
 export async function onRequestGet({ request }) {
@@ -261,7 +277,7 @@ export async function onRequestGet({ request }) {
       );
     }
 
-    const { room_status, nickname, title } = await fetchRoomStatus({ liveId, roomId, ua, ttwid, acNonce });
+    const { room_status, nickname, title, avatar_url } = await fetchRoomStatus({ liveId, roomId, ua, ttwid, acNonce });
     const is_live = room_status === 0 ? true : room_status === 2 ? false : null;
     return jsonResponse({
       ok: true,
@@ -269,6 +285,7 @@ export async function onRequestGet({ request }) {
       live_url: `https://live.douyin.com/${liveId}`,
       room_id: roomId,
       nickname: nickname || null,
+      avatar_url: avatar_url || null,
       room_status,
       is_live,
       title: title || null,

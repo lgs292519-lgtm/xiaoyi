@@ -684,6 +684,21 @@ function renderProfile(p) {
   const updatedEl = document.getElementById("profileUpdatedAt");
   const titleEl = document.getElementById("liveTitle");
   const liveBtn = document.getElementById("douyinLive");
+  const avatarEl = document.getElementById("headerAvatar");
+
+  const avatarUrl = String(p?.avatar_url || "").trim();
+  if (avatarEl) {
+    if (avatarUrl) {
+      avatarEl.referrerPolicy = "no-referrer";
+      avatarEl.onerror = function () {
+        this.onerror = null;
+        this.src = "./assets/avatar.png";
+      };
+      avatarEl.src = avatarUrl;
+    } else {
+      avatarEl.src = "./assets/avatar.png";
+    }
+  }
 
   const nickname = String(p?.nickname || "").trim();
   if (nameEl) nameEl.textContent = nickname || "歌手主页";

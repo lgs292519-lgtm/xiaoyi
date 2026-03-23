@@ -110,7 +110,11 @@ def main() -> int:
         if not fetcher.room_id:
             profile.error = "获取 room_id 失败（可能被反爬拦截/网络问题/直播间不可用）"
         else:
-            room_status, nickname, avatar_url = fetcher.fetch_room_status_ex()
+            if hasattr(fetcher, "fetch_room_status_ex"):
+                room_status, nickname, avatar_url = fetcher.fetch_room_status_ex()
+            else:
+                room_status, nickname = fetcher.fetch_room_status()
+                avatar_url = None
             profile.room_status = room_status
             profile.nickname = nickname or None
             profile.avatar_url = (avatar_url or None) if avatar_url else None

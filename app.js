@@ -43,7 +43,6 @@ function renderRow(song) {
     <td class="td-title">${escapeHtml(song.title)}</td>
     <td class="td-artist">${escapeHtml(song.artist)}</td>
     <td class="td-genre">${escapeHtml(song.genre)}</td>
-    <td class="td-price">${Number(song.price || 0)}</td>
   `;
   return tr;
 }
@@ -94,8 +93,6 @@ function applyFilters(allSongs) {
     return hay.includes(q);
   });
 
-  if (sort === "price_asc") filtered.sort((a, b) => a.price - b.price);
-  if (sort === "price_desc") filtered.sort((a, b) => b.price - a.price);
   if (sort === "title_asc") filtered.sort((a, b) => a.title.localeCompare(b.title, "zh"));
 
   return filtered;

@@ -15,6 +15,26 @@
       <header class="header">
         <div class="avatar" aria-hidden="true">
           <img id="headerAvatar" src="./assets/avatar.png" alt="" referrerpolicy="no-referrer" onerror="this.remove(); this.parentElement.textContent='♪';" />
+          <script>
+            (function () {
+              var img = document.getElementById("headerAvatar");
+              if (!img) return;
+              fetch("./data/profile.json", { cache: "no-store" })
+                .then(function (r) { return r.json(); })
+                .then(function (p) {
+                  var u = p && p.avatar_url ? String(p.avatar_url).trim() : "";
+                  if (u) {
+                    img.referrerPolicy = "no-referrer";
+                    img.onerror = function () {
+                      this.onerror = null;
+                      this.src = "./assets/avatar.png";
+                    };
+                    img.src = u;
+                  }
+                })
+                .catch(function () {});
+            })();
+          </script>
         </div>
         <div class="title">
           <div class="titleRow">
